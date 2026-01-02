@@ -6,13 +6,20 @@ class Command(BaseCommand):
     help = 'Populate the octofit_db database with test data'
 
     def handle(self, *args, **options):
+
         with transaction.atomic():
-            # Clear existing data
-            Leaderboard.objects.all().delete()
-            Activity.objects.all().delete()
-            Workout.objects.all().delete()
-            User.objects.all().delete()
-            Team.objects.all().delete()
+            # Clear existing data in correct order to avoid FK issues and unhashable errors
+            for obj in Leaderboard.objects.all():
+                obj.delete()
+            for obj in Activity.objects.all():
+                obj.delete()
+            for workout in Workout.objects.all():
+                workout.suggested_for.clear()
+                workout.delete()
+            for obj in User.objects.all():
+                obj.delete()
+            for obj in Team.objects.all():
+                obj.delete()
 
             # Create teams
             marvel = Team.objects.create(name='Marvel')
@@ -20,13 +27,11 @@ class Command(BaseCommand):
 
             # Create users
             users = [
-                User(name='Spider-Man', email='spiderman@marvel.com', team=marvel),
-                User(name='Iron Man', email='ironman@marvel.com', team=marvel),
-                User(name='Wonder Woman', email='wonderwoman@dc.com', team=dc),
-                User(name='Batman', email='batman@dc.com', team=dc),
+                User.objects.create(name='Spider-Man', email='spiderman@marvel.com', team=marvel),
+                User.objects.create(name='Iron Man', email='ironman@marvel.com', team=marvel),
+                User.objects.create(name='Wonder Woman', email='wonderwoman@dc.com', team=dc),
+                User.objects.create(name='Batman', email='batman@dc.com', team=dc),
             ]
-            for user in users:
-                user.save()
 
             # Create activities
             Activity.objects.create(user=users[0], type='Running', duration=30, date='2026-01-01')
